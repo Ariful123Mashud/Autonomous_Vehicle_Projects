@@ -1,4 +1,6 @@
 # Autonomous_Vehicle_Projects
+Feel free to checkout the object detected output run video file: https://drive.google.com/file/d/1qjykuD2NXGng2o4smF7yA6Q8O9fhVnql/view?usp=drive_link
+
 All caveat of autonomous vehicle stack from vision-planing-to control is covered in this projects. ...is under development. 
 CARLA Traffic Video Object Detection 
 Object detection pipeline that runs a pretrained TensorFlow SSD-ResNet50-FPN model on recorded CARLA simulator footage (Town
