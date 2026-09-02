@@ -1,0 +1,175 @@
+There are three compatibility layers:
+
+Ubuntu 24.04 Host
+        |
+        |
+NVIDIA Driver 595
+        |
+        |
+Docker GPU Runtime
+        |
+        |
+Ubuntu 22.04 Container
+        |
+        |
+ROS 2 Humble
+        |
+        |
+CARLA 0.9.16
+
+The most stable combination today is:
+
+Component	Version
+Host OS	Ubuntu 24.04 ✅
+NVIDIA Driver	535+ (your 595 OK) ✅
+Docker Engine	Latest stable ✅
+NVIDIA Container Toolkit	Latest stable ✅
+Container OS	Ubuntu 22.04
+ROS 2	Humble
+CARLA	0.9.16
+Python	3.10
+
+I would avoid:
+
+CARLA 0.9.13 ❌ (old dependencies)
+ROS 2 Foxy ❌
+Ubuntu 20.04 containers ❌
+Installing CARLA natively on Ubuntu 24.04 ❌
+STEP 1 — Clean Docker installation
+
+First remove any old Docker packages:
+
+sudo apt remove docker docker-engine docker.io containerd runc
+
+Update:
+
+sudo apt updatesudo apt upgrade-y
+
+Install dependencies:
+
+sudo apt install-y \
+ca-certificates \curl \
+gnupg \
+lsb-release
+
+Add Docker key:
+
+sudo install-m0755-d /etc/apt/keyringscurl-fsSL <https://download.docker.com/linux/ubuntu/gpg> | \sudo gpg--dearmor-o /etc/apt/keyrings/docker.gpgsudochmod a+r /etc/apt/keyrings/docker.gpg
+
+Add Docker repository:
+
+echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \<https://download.docker.com/linux/ubuntu> \
+$(. /etc/os-release && echo noble) stable" | \sudotee /etc/apt/sources.list.d/docker.list > /dev/null
+
+Install Docker:
+
+sudo apt updatesudo apt install-y \
+docker-ce \
+docker-ce-cli \
+containerd.io \
+docker-buildx-plugin \
+docker-compose-plugin
+
+Check:
+
+docker--version
+STEP 2 — Enable Docker without sudo
+sudo usermod-aG docker$USER
+
+Restart your computer:
+
+sudo reboot
+
+After reboot:
+
+docker run hello-world
+
+Expected:
+
+Hello from Docker!
+STEP 3 — NVIDIA Container Toolkit
+
+Install:
+
+curl-fsSL <https://nvidia.github.io/libnvidia-container/gpgkey> | \sudo gpg--dearmor-o /usr/share/keyrings/nvidia-container-toolkit.gpg
+
+Add repository:
+
+curl-s-L <https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list> | \sed's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit.gpg] https://#' | \sudotee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+Install:
+
+sudo apt updatesudo apt install-y nvidia-container-toolkit
+
+Configure:
+
+sudo nvidia-ctk runtime configure--runtime=docker
+
+Restart:
+
+sudo systemctlrestart docker
+STEP 4 — Verify GPU inside Docker
+
+Run:
+
+docker run--rm--gpus all ubuntu nvidia-smi
+
+You MUST see:
+
+NVIDIA GeForce RTX 5050
+Driver Version: 595.84
+
+If this fails, stop here.
+
+STEP 5 — Install CARLA 0.9.16 Docker
+
+Create workspace:
+
+mkdir-p ~/AV_Stack/CARLAcd ~/AV_Stack/CARLA
+
+Pull image:
+
+docker pull carlasim/carla:0.9.16
+
+Verify:
+
+docker images
+
+You should see:
+
+carlasim/carla     0.9.16
+STEP 6 — Allow GUI access
+
+Run:
+
+xhost+local:docker
+
+docker run \
+--rm \
+--gpus all \
+--network=host \
+-e DISPLAY=$DISPLAY \
+-v /tmp/.X11-unix:/tmp/.X11-unix \
+carlasim/carla:0.9.16 \
+./CarlaUE4.sh -quality-level=Low
+
+%%%%%%%%%%%%%%%
+DOnt use this
+
+xhost +local:docker
+
+docker run --rm \
+--gpus all \
+--net=host \
+--ipc=host \
+--shm-size=2g \
+-e DISPLAY=$DISPLAY \
+-e SDL_VIDEODRIVER=x11 \
+-e NVIDIA_DRIVER_CAPABILITIES=all \
+-v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+carlasim/carla:0.9.16 \
+./CarlaUE4.sh -quality-level=Low
+
+Force kill
+
+pkill -9 -f CarlaUE4
